@@ -23,7 +23,7 @@ google-crc32c==1.6.0
 google-resumable-media==2.7.2
 googleapis-common-protos==1.65.0
 grpcio-status==1.66.2
-grpcio-tools==1.60.1
+grpcio-tools>=1.66.0   # Allow pip to select compatible versions
 httplib2==0.22.0
 idna==3.10
 Jinja2==3.1.4
@@ -43,7 +43,7 @@ packaging==24.2
 pandas==2.2.3
 pillow==11.0.0
 proto-plus==1.24.0
-protobuf==5.28.3
+protobuf>=3.20.2, <5.0.0  # Allow compatible protobuf versions
 pyarrow==18.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
@@ -71,8 +71,6 @@ tzdata==2024.2
 uritemplate==4.1.1
 urllib3==2.2.3
 watchdog==6.0.0
+grpcio>=1.66.2  # Updated to support grpcio-status and grpcio-tools
 streamlit
 openobd
-grpcio>=1.66.2  # Or just "grpcio" if no version is needed
-protobuf
-
