@@ -22,9 +22,8 @@ google-cloud-storage==2.18.2
 google-crc32c==1.6.0
 google-resumable-media==2.7.2
 googleapis-common-protos==1.65.0
-grpcio==1.60.1  # Pin grpcio to 1.60.1 for compatibility with openobd-protocol
-grpcio-status==1.60.1  # Use a compatible grpcio-status version
-grpcio-tools==1.60.1  # Use a compatible grpcio-tools version
+grpcio-status
+grpcio-tools
 httplib2==0.22.0
 idna==3.10
 Jinja2==3.1.4
@@ -44,7 +43,7 @@ packaging==24.2
 pandas==2.2.3
 pillow==11.0.0
 proto-plus==1.24.0
-protobuf==3.20.2  # Use a compatible version for other dependencies
+protobuf  # Remove version constraint for pip compatibility resolution
 pyarrow==18.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
@@ -72,3 +71,6 @@ tzdata==2024.2
 uritemplate==4.1.1
 urllib3==2.2.3
 watchdog==6.0.0
+streamlit
+grpcio  # Allow pip to determine version
+openobd
