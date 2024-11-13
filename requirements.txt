@@ -72,3 +72,7 @@ tzdata==2024.2
 uritemplate==4.1.1
 urllib3==2.2.3
 watchdog==6.0.0
+streamlit
+openobd
+grpcio>=1.66.2
+
