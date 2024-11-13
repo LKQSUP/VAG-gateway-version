@@ -174,7 +174,7 @@ def run_obd_script(ticket_id):
     return responses, sfd2_detected
 
 # Streamlit Interface
-st.title("Vehicle Gateway SFD Status Checker")
+st.title("Check Vehicle Gateway SFD Version")
 
 ticket_id = st.text_input("Enter Ticket ID:")
 
