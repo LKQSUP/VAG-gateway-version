@@ -73,5 +73,5 @@ urllib3==2.2.3
 watchdog==6.0.0
 streamlit
 openobd
-grpcio
+grpcio>=1.66.2  # Or just "grpcio" if no version is needed
 
