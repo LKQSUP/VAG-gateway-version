@@ -1,5 +1,6 @@
 import streamlit as st
 import logging
+import os
 from openobd import OpenOBD, BusConfiguration, CanBus, CanProtocol, CanBitRate, TransceiverSpeed, IsotpChannel, Padding, IsotpSocket, ServiceResult, Result, StreamHandler, SessionTokenHandler
 
 # Configure logging
@@ -41,28 +42,26 @@ def get_last_run_data():
     except FileNotFoundError:
         return ["No previous data available."]
 
-# Function to start an OBD session
+# Updated function to initialize an OBD session with environment variable handling
 def initialize_obd_session(ticket_id):
     try:
-        # Initialize OpenOBD with API credentials from Streamlit secrets
-        openobd = OpenOBD(
-            client_id=st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_ID"],
-            client_secret=st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_SECRET"],
-            api_key=st.secrets["api_keys"]["OPENOBD_PARTNER_API_KEY"],
-            cluster_id=st.secrets["api_keys"]["OPENOBD_CLUSTER_ID"],
-            grpc_host=st.secrets["api_keys"]["OPENOBD_GRPC_HOST"]
-        )
-        # Attempt to start session with provided ticket ID
+        # Set environment variables for OpenOBD
+        os.environ["OPENOBD_PARTNER_CLIENT_ID"] = st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_ID"]
+        os.environ["OPENOBD_PARTNER_CLIENT_SECRET"] = st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_SECRET"]
+        os.environ["OPENOBD_PARTNER_API_KEY"] = st.secrets["api_keys"]["OPENOBD_PARTNER_API_KEY"]
+        os.environ["OPENOBD_CLUSTER_ID"] = st.secrets["api_keys"]["OPENOBD_CLUSTER_ID"]
+        os.environ["OPENOBD_GRPC_HOST"] = st.secrets["api_keys"]["OPENOBD_GRPC_HOST"]
+
+        # Initialize OpenOBD with the environment credentials
+        openobd = OpenOBD()
         session = openobd.start_session_on_ticket(ticket_id)
         SessionTokenHandler(session)
         return session
     except AssertionError as e:
-        # If any assertion fails, such as missing API credentials or incorrect ticket ID, show an error
         st.error("Invalid Ticket ID or missing credentials. Please check the ID and try again.")
         logging.error(f"Failed to start session: {e}")
         return None
     except Exception as e:
-        # Catch any other errors and log them
         st.error("An unexpected error occurred. Please try again later.")
         logging.error(f"Unexpected error in starting session: {e}")
         return None
@@ -130,7 +129,6 @@ def run_obd_script(ticket_id):
     # Initialize the session with the provided ticket ID
     session = initialize_obd_session(ticket_id)
     if not session:
-        # Stop execution if session could not be initialized
         responses.append("<span style='color: red;'>Failed to initialize session. Please check your Ticket ID.</span>")
         return responses, sfd2_detected
 
@@ -174,12 +172,14 @@ def run_obd_script(ticket_id):
     return responses, sfd2_detected
 
 # Streamlit Interface
-st.title("Check Vehicle Gateway SFD Version")
+st.title("Vehicle Gateway SFD Status Checker")
 
 ticket_id = st.text_input("Enter Ticket ID:")
 
 if st.button("Run Script"):
-    if ticket_id:
+    if not ticket_id.isdigit():
+        st.error("Ticket ID must contain only numbers. Please enter a valid numeric Ticket ID.")
+    elif ticket_id:
         responses, sfd2_detected = run_obd_script(ticket_id)
         st.write("### Results:")
         for response in responses:
