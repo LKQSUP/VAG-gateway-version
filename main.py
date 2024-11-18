@@ -101,7 +101,7 @@ def process_request(gtw, name, command):
                 log_response(result_str)
 
                 sfd2_keywords = ["UNECE", "UN-ECE", "ECE"]
-                sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q"]
+                sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q", "5QS907530D"]
 
                 if (name == "ECU Type" and any(keyword in data for keyword in sfd2_keywords)) or \
                    (name == "Factory Part Number" and data in sfd2_factory_parts):
@@ -172,7 +172,7 @@ def run_obd_script(ticket_id):
     return responses, sfd2_detected
 
 # Streamlit Interface
-st.title("Vehicle Gateway SFD Status Checker")
+st.title("Check Vehicle Gateway SFD Status version")
 
 ticket_id = st.text_input("Enter Ticket ID:")
 
