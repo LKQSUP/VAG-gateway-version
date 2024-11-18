@@ -101,14 +101,13 @@ def process_request(gtw, name, command):
                 log_response(result_str)
 
                 sfd2_keywords = ["UNECE", "UN-ECE", "ECE"]
-                sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q","5QS907530D"]
-                #init
+                sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q"]
 
-                if name == "ECU Type" and any(keyword in data for keyword in sfd2_keywords) or \
-                   name == "Factory Part Number" and data in sfd2_factory_parts:
+                if (name == "ECU Type" and any(keyword in data for keyword in sfd2_keywords)) or \
+                   (name == "Factory Part Number" and data in sfd2_factory_parts):
                     return data, True  # SFD2 detected
                 else:
-                    return data, False
+                    return data, False  # Not SFD2
             except UnicodeDecodeError:
                 log_response(f"{name}: (Cannot decode to UTF-8) {response_hex}")
     except Exception as e:
@@ -124,7 +123,7 @@ def save_sfd2_log(data):
 # Main function to run the OBD script and check for SFD2
 def run_obd_script(ticket_id):
     responses = []
-    sfd2_detected = False
+    sfd2_detected = False  # Track if SFD2 is detected
     sfd2_data = {}
 
     # Initialize the session with the provided ticket ID
