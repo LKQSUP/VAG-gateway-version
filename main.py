@@ -96,17 +96,25 @@ def process_request(gtw, name, command):
         if response:
             response_hex = response[6:]
             try:
-                data = bytes.fromhex(response_hex).decode("utf-8")
+                # Decode the response
+                data = bytes.fromhex(response_hex).decode("utf-8").strip()  # Strip extra spaces
                 result_str = f"{name}: {data}"
                 log_response(result_str)
 
+                # Define SFD2 keywords and factory part numbers
                 sfd2_keywords = ["UNECE", "UN-ECE", "ECE"]
                 sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q", "5QS907530D"]
 
-                if (name == "ECU Type" and any(keyword in data for keyword in sfd2_keywords)) or \
-                   (name == "Factory Part Number" and data in sfd2_factory_parts):
+                # Normalize data for comparison (case-insensitive, stripped)
+                normalized_data = data.strip()
+
+                # Check if the data matches any SFD2 criteria
+                if (name == "ECU Type" and any(keyword in normalized_data for keyword in sfd2_keywords)) or \
+                   (name == "Factory Part Number" and normalized_data in sfd2_factory_parts):
+                    logging.info(f"SFD2 Detected: {data}")
                     return data, True  # SFD2 detected
                 else:
+                    logging.info(f"Not SFD2: {data}")
                     return data, False  # Not SFD2
             except UnicodeDecodeError:
                 log_response(f"{name}: (Cannot decode to UTF-8) {response_hex}")
