@@ -158,6 +158,9 @@ def run_obd_script(ticket_id):
 # Streamlit Interface
 st.title("Check Vehicle Gateway SFD Status")
 
+# Load SFD2 factory parts on startup
+load_sfd2_factory_parts()
+
 ticket_id = st.text_input("Enter Ticket ID:")
 
 if st.button("Run Script"):
@@ -181,3 +184,8 @@ if st.button("Run Script"):
                     st.success(f"Factory part number {factory_part_number} has been successfully added to the SFD2 list.")
     else:
         st.error("Please enter a valid Ticket ID")
+
+if st.button("Show SFD2 Fact_number"):
+    st.write("### SFD2 Factory Part Numbers:")
+    for part_number in sfd2_factory_parts:
+        st.write(part_number)
