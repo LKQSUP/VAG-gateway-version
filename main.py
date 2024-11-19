@@ -8,51 +8,38 @@ log_file_path = "responses_log.txt"
 sfd2_log_file_path = "sfd2_log.txt"
 logging.basicConfig(level=logging.INFO)
 
+# Initialize SFD2 Factory Part Numbers List
+sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q", "5QS907530D"]
+
 # Function to log data to a file
 def log_response(data, filepath=log_file_path):
     with open(filepath, "a") as log_file:
         log_file.write(f"{data}\n\n")
 
-# Function to retrieve the last 3 car data entries from the log file
-def get_last_3_logs():
-    try:
-        with open(log_file_path, "r") as log_file:
-            lines = log_file.readlines()
-        entries = "".join(lines).strip().split("\n\n")
-        return entries[-3:]
-    except FileNotFoundError:
-        return ["No previous data available."]
+# Function to save updated SFD2 parts list
+def save_sfd2_factory_parts():
+    with open("sfd2_parts.txt", "w") as file:
+        for part in sfd2_factory_parts:
+            file.write(part + "\n")
 
-# Function to retrieve all log data
-def get_all_logs():
+# Function to retrieve SFD2 parts from file on startup
+def load_sfd2_factory_parts():
+    global sfd2_factory_parts
     try:
-        with open(log_file_path, "r") as log_file:
-            all_logs = log_file.read()
-        return all_logs.split("\n\n")
+        with open("sfd2_parts.txt", "r") as file:
+            sfd2_factory_parts = [line.strip() for line in file.readlines()]
     except FileNotFoundError:
-        return ["No log data available."]
+        save_sfd2_factory_parts()  # Save the default parts list if file doesn't exist
 
-# Function to retrieve the latest run data only
-def get_last_run_data():
-    try:
-        with open(log_file_path, "r") as log_file:
-            lines = log_file.readlines()
-        entries = "".join(lines).strip().split("\n\n")
-        return entries[-1:]  # Get only the latest run
-    except FileNotFoundError:
-        return ["No previous data available."]
-
-# Updated function to initialize an OBD session with environment variable handling
+# Function to initialize an OBD session
 def initialize_obd_session(ticket_id):
     try:
-        # Set environment variables for OpenOBD
         os.environ["OPENOBD_PARTNER_CLIENT_ID"] = st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_ID"]
         os.environ["OPENOBD_PARTNER_CLIENT_SECRET"] = st.secrets["api_keys"]["OPENOBD_PARTNER_CLIENT_SECRET"]
         os.environ["OPENOBD_PARTNER_API_KEY"] = st.secrets["api_keys"]["OPENOBD_PARTNER_API_KEY"]
         os.environ["OPENOBD_CLUSTER_ID"] = st.secrets["api_keys"]["OPENOBD_CLUSTER_ID"]
         os.environ["OPENOBD_GRPC_HOST"] = st.secrets["api_keys"]["OPENOBD_GRPC_HOST"]
 
-        # Initialize OpenOBD with the environment credentials
         openobd = OpenOBD()
         session = openobd.start_session_on_ticket(ticket_id)
         SessionTokenHandler(session)
@@ -96,21 +83,15 @@ def process_request(gtw, name, command):
         if response:
             response_hex = response[6:]
             try:
-                # Decode the response
-                data = bytes.fromhex(response_hex).decode("utf-8").strip()  # Strip extra spaces
+                data = bytes.fromhex(response_hex).decode("utf-8").strip()
                 result_str = f"{name}: {data}"
                 log_response(result_str)
 
-                # Define SFD2 keywords and factory part numbers
                 sfd2_keywords = ["UNECE", "UN-ECE", "ECE"]
-                sfd2_factory_parts = ["3Q0907530BB", "1EE937012D", "1EE937012B", "4KL907468Q", "5QS907530D"]
-
-                # Normalize data for comparison (case-insensitive, stripped)
-                normalized_data = data.strip()
 
                 # Check if the data matches any SFD2 criteria
-                if (name == "ECU Type" and any(keyword in normalized_data for keyword in sfd2_keywords)) or \
-                   (name == "Factory Part Number" and normalized_data in sfd2_factory_parts):
+                if (name == "ECU Type" and any(keyword in data for keyword in sfd2_keywords)) or \
+                   (name == "Factory Part Number" and data in sfd2_factory_parts):
                     logging.info(f"SFD2 Detected: {data}")
                     return data, True  # SFD2 detected
                 else:
@@ -124,21 +105,16 @@ def process_request(gtw, name, command):
 
     return "Request failed", False
 
-# Function to save SFD2 data to the SFD2 log file
-def save_sfd2_log(data):
-    log_response(data, filepath=sfd2_log_file_path)
-
 # Main function to run the OBD script and check for SFD2
 def run_obd_script(ticket_id):
     responses = []
-    sfd2_detected = False  # Track if SFD2 is detected
-    sfd2_data = {}
+    sfd2_detected = False
+    factory_part_number = None
 
-    # Initialize the session with the provided ticket ID
     session = initialize_obd_session(ticket_id)
     if not session:
         responses.append("<span style='color: red;'>Failed to initialize session. Please check your Ticket ID.</span>")
-        return responses, sfd2_detected
+        return responses, sfd2_detected, factory_part_number
 
     configure_buses(session)
 
@@ -160,7 +136,9 @@ def run_obd_script(ticket_id):
         for name, command in requests.items():
             data, is_sfd2 = process_request(gtw, name, command)
             responses.append(f"{name}: {data}")
-            sfd2_data[name] = data
+
+            if name == "Factory Part Number":
+                factory_part_number = data  # Save the Factory Part Number
 
             if is_sfd2:
                 sfd2_detected = True
@@ -172,15 +150,13 @@ def run_obd_script(ticket_id):
 
     if sfd2_detected:
         responses.append("<span style='color: red;'>The vehicle has SFD2</span>")
-        save_sfd2_log(" | ".join(f"{k}: {v}" for k, v in sfd2_data.items()))
     else:
         responses.append("<span style='color: green;'>The vehicle has no SFD2</span>")
-        log_response(" | ".join(f"{k}: {v}" for k, v in sfd2_data.items()))
 
-    return responses, sfd2_detected
+    return responses, sfd2_detected, factory_part_number
 
 # Streamlit Interface
-st.title("Check Vehicle Gateway SFD Status version")
+st.title("Check Vehicle Gateway SFD Status")
 
 ticket_id = st.text_input("Enter Ticket ID:")
 
@@ -188,28 +164,20 @@ if st.button("Run Script"):
     if not ticket_id.isdigit():
         st.error("Ticket ID must contain only numbers. Please enter a valid numeric Ticket ID.")
     elif ticket_id:
-        responses, sfd2_detected = run_obd_script(ticket_id)
+        responses, sfd2_detected, factory_part_number = run_obd_script(ticket_id)
         st.write("### Results:")
         for response in responses:
             st.markdown(response, unsafe_allow_html=True)
+
+        if not sfd2_detected and factory_part_number:
+            st.warning("Are you sure the vehicle has no SFD2?")
+            if st.button("Yes"):
+                st.success("The vehicle has no SFD2.")
+            if st.button("No"):
+                st.warning("The factory part number will be added to the SFD2 list.")
+                if st.button("Continue"):
+                    sfd2_factory_parts.append(factory_part_number)
+                    save_sfd2_factory_parts()
+                    st.success(f"Factory part number {factory_part_number} has been successfully added to the SFD2 list.")
     else:
         st.error("Please enter a valid Ticket ID")
-
-st.write("### View Logs")
-log_option = st.selectbox("Select Log to View", ["Last 3 Entries", "All Entries", "Latest Run"])
-
-if log_option == "Last 3 Entries":
-    last_3_logs = get_last_3_logs()
-    st.write("### Last 3 Entries:")
-    for log in last_3_logs:
-        st.write(log)
-elif log_option == "All Entries":
-    all_logs = get_all_logs()
-    st.write("### All Entries:")
-    for log in all_logs:
-        st.write(log)
-elif log_option == "Latest Run":
-    latest_run = get_last_run_data()
-    st.write("### Latest Run:")
-    for log in latest_run:
-        st.write(log)
