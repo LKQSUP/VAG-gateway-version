@@ -182,10 +182,17 @@ if st.button("Run Script"):
                     sfd2_factory_parts.append(factory_part_number)
                     save_sfd2_factory_parts()
                     st.success(f"Factory part number {factory_part_number} has been successfully added to the SFD2 list.")
-    else:
-        st.error("Please enter a valid Ticket ID")
 
 if st.button("Show SFD2 Fact_number"):
     st.write("### SFD2 Factory Part Numbers:")
     for part_number in sfd2_factory_parts:
         st.write(part_number)
+
+sfd2_list_str = "\n".join(sfd2_factory_parts)
+
+st.download_button(
+    label="Download SFD2 List",
+    data=sfd2_list_str,
+    file_name="sfd2_factory_parts.txt",
+    mime="text/plain",
+)
